@@ -19,6 +19,10 @@ export abstract class FirewallRule<T extends string | number> implements IFirewa
     return this._active;
   }
 
+  setActive(value: boolean): void {
+    this._active = value;
+  }
+
   abstract isValid(): boolean;
   toJSON(): IFirewallRule<T> {
   return {

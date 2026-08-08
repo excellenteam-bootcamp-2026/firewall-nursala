@@ -6,8 +6,8 @@ import { RuleType } from "../../domain/models/RuleType";
 import { IpRule } from "../../domain/models/IpRule";
 import { DomainRule } from "../../domain/models/DomainRule";
 import { PortRule } from "../../domain/models/PortRule";
-import { IFirewallRule } from "../../domain/models/IFirewallRule";
 import { RuleValidationError } from "../errors/RuleValidationError";
+import { FirewallRuleFactory } from "../factories/FirewallRuleFactory";
 
 const VALIDATION_ERRORS: Record<RuleType, { code: string; message: string }> = {
   [RuleType.IP]: {
@@ -25,32 +25,20 @@ const VALIDATION_ERRORS: Record<RuleType, { code: string; message: string }> = {
 };
 
 export class FirewallService {
-  constructor(private repository: IFirewallRepository) {}
-
-  buildRule(
-    type: RuleType,
-    value: string | number,
-    active: boolean,
-  ): AnyFirewallRule {
-    const id = this.repository.getNextId();
-    switch (type) {
-      case RuleType.IP:
-        return new IpRule(id, value as string, active);
-      case RuleType.DOMAIN:
-        return new DomainRule(id, value as string, active);
-      case RuleType.PORT:
-        return new PortRule(id, value as number, active);
-      default:
-        throw new Error(`Unsupported rule type: ${type}`);
-    }
-  }
+  constructor(
+    private repository: IFirewallRepository,
+    private factory: FirewallRuleFactory,
+  ) {}
 
   addRule(
     values: (string | number)[],
     type: RuleType,
     active: boolean,
   ): AnyFirewallRule[] {
-    const rules = values.map((value) => this.buildRule(type, value, active));
+    const rules = values.map((value) => {
+      const id = this.repository.getNextId();
+      return this.factory.create(type, id, value, active);
+    });
 
     const invalidRule = rules.find((rule) => !rule.isValid());
     if (invalidRule) {
@@ -96,21 +84,10 @@ export class FirewallService {
         continue;
       }
 
-      let newRule: AnyFirewallRule;
-      if (existingRule instanceof IpRule) {
-        newRule = new IpRule(existingRule.id, existingRule.value, active);
-      } else if (existingRule instanceof DomainRule) {
-        newRule = new DomainRule(existingRule.id, existingRule.value, active);
-      } else if (existingRule instanceof PortRule) {
-        newRule = new PortRule(existingRule.id, existingRule.value, active);
-      } else {
-        continue;
-      }
-
-      const updatedRule = this.repository.update(id, newRule);
-      if (updatedRule) {
-        updatedRules.push(updatedRule);
-      }
+      // No repository.update() needed: getById returns the stored reference,
+      // so mutating it in place is already visible inside the repository.
+      existingRule.setActive(active);
+      updatedRules.push(existingRule);
     }
 
     return updatedRules;
