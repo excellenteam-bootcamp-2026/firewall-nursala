@@ -1,6 +1,11 @@
 import { FirewallRule } from './FirewallRule';
+import { RuleType } from './RuleType';
 
 export class IpRule extends FirewallRule<string> {
+  get type(): RuleType {
+    return RuleType.IP;
+  }
+
   isValid(): boolean {
     const parts = this.value.split('.');
 

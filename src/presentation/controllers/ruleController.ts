@@ -5,15 +5,16 @@ import { IpRule } from '../../domain/models/IpRule';
 import { DomainRule } from '../../domain/models/DomainRule';
 import { PortRule } from '../../domain/models/PortRule';
 import { validateIds, validateActive } from '../validators/requestValidators';
+import { RuleValidationError } from '../../application/errors/RuleValidationError';
 
 export function removeRules(req: Request, res: Response): void {
-  const { ids } = req.body;
+  const { ids } = req.body ?? {};
 
   validateIds(ids);
 
   const removedRules = firewallService.removeRules(ids);
   res.status(200).json({
-    removed: removedRules,
+    removed: removedRules.map((rule) => rule.toDetailedJSON()),
     status: 'success',
   });
 }
@@ -33,14 +34,14 @@ export function getRules(req: Request, res: Response): void {
 }
 
 export function updateRuleStatus(req: Request, res: Response): void {
-  const { ids, active } = req.body;
+  const { ids, active } = req.body ?? {};
 
   validateIds(ids);
   validateActive(active);
 
   const updatedRules = firewallService.updateRulesStatus(ids, active);
   res.status(200).json({
-    updated: updatedRules,
+    updated: updatedRules.map((rule) => rule.toDetailedJSON()),
     status: 'success',
   });
 }
@@ -58,6 +59,9 @@ function parseRuleType(type: string | undefined): RuleType | undefined {
     case RuleType.PORT:
       return RuleType.PORT;
     default:
-      throw new Error("Type must be one of 'ip', 'domain' or 'port'.");
+      throw new RuleValidationError(
+        'INVALID_TYPE',
+        "Type must be one of 'ip', 'domain' or 'port'."
+      );
   }
 }

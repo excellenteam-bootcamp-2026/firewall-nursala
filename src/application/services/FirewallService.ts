@@ -3,10 +3,9 @@ import {
   AnyFirewallRule,
 } from "../../domain/ports/IFirewallRepository";
 import { RuleType } from "../../domain/models/RuleType";
-import { IpRule } from "../../domain/models/IpRule";
-import { DomainRule } from "../../domain/models/DomainRule";
-import { PortRule } from "../../domain/models/PortRule";
+import { Mode } from "../../domain/models/FirewallRule";
 import { RuleValidationError } from "../errors/RuleValidationError";
+import { RuleNotFoundError } from "../errors/RuleNotFoundError";
 import { FirewallRuleFactory } from "../factories/FirewallRuleFactory";
 
 const VALIDATION_ERRORS: Record<RuleType, { code: string; message: string }> = {
@@ -34,10 +33,11 @@ export class FirewallService {
     values: (string | number)[],
     type: RuleType,
     active: boolean,
+    mode: Mode,
   ): AnyFirewallRule[] {
     const rules = values.map((value) => {
       const id = this.repository.getNextId();
-      return this.factory.create(type, id, value, active);
+      return this.factory.create(type, id, value, active, mode);
     });
 
     const invalidRule = rules.find((rule) => !rule.isValid());
@@ -50,14 +50,11 @@ export class FirewallService {
   }
 
   removeRules(ids: number[]): AnyFirewallRule[] {
+    const rules = this.findAllOrThrow(ids);
     const removedRules: AnyFirewallRule[] = [];
 
-    for (const id of ids) {
-      const rule = this.repository.getById(id);
-      if (!rule) {
-        continue;
-      }
-      if (this.repository.remove(id)) {
+    for (const rule of rules) {
+      if (this.repository.remove(rule.id)) {
         removedRules.push(rule);
       }
     }
@@ -76,33 +73,38 @@ export class FirewallService {
   }
 
   updateRulesStatus(ids: number[], active: boolean): AnyFirewallRule[] {
-    const updatedRules: AnyFirewallRule[] = [];
+    const updatedRules = this.findAllOrThrow(ids);
 
-    for (const id of ids) {
-      const existingRule = this.repository.getById(id);
-      if (!existingRule) {
-        continue;
-      }
-
+    for (const rule of updatedRules) {
       // No repository.update() needed: getById returns the stored reference,
       // so mutating it in place is already visible inside the repository.
-      existingRule.setActive(active);
-      updatedRules.push(existingRule);
+      rule.setActive(active);
     }
 
     return updatedRules;
   }
 
-  private matchesType(rule: AnyFirewallRule, type: RuleType): boolean {
-    switch (type) {
-      case RuleType.IP:
-        return rule instanceof IpRule;
-      case RuleType.DOMAIN:
-        return rule instanceof DomainRule;
-      case RuleType.PORT:
-        return rule instanceof PortRule;
-      default:
-        return false;
+  private findAllOrThrow(ids: number[]): AnyFirewallRule[] {
+    const rules: AnyFirewallRule[] = [];
+    const missingIds: number[] = [];
+
+    for (const id of ids) {
+      const rule = this.repository.getById(id);
+      if (rule) {
+        rules.push(rule);
+      } else {
+        missingIds.push(id);
+      }
     }
+
+    if (missingIds.length > 0) {
+      throw new RuleNotFoundError(missingIds);
+    }
+
+    return rules;
+  }
+
+  private matchesType(rule: AnyFirewallRule, type: RuleType): boolean {
+    return rule.type === type;
   }
 }
