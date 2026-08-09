@@ -1,5 +1,5 @@
 import winston from "winston";
-import { config } from "./env";
+import { config, constants } from "./env";
 
 class LoggerSingleton {
   private static instance: winston.Logger | Console;
@@ -10,13 +10,13 @@ class LoggerSingleton {
     if (!LoggerSingleton.instance) {
       try {
         LoggerSingleton.instance = winston.createLogger({
-          level: config.env === "dev" ? "debug" : "info",
+          level: config.env === "dev" ? config.logLevel : "info",
           format: winston.format.simple(),
           transports: [
             config.env === "dev"
               ? new winston.transports.Console()
               : new winston.transports.File({
-                  filename: "logs/app.log",
+                  filename: config.logFilePath,
                 }),
           ],
         });

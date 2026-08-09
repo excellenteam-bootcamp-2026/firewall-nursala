@@ -3,6 +3,7 @@ import { firewallService } from '../../../../main/composition';
 import { RuleType } from '../../../../domain/models/RuleType';
 import { validateIds, validateActive } from '../validators/requestValidators';
 import { RuleValidationError } from '../../../../application/errors/RuleValidationError';
+import { constants } from '../../../../main/config/env';
 
 export function removeRules(req: Request, res: Response): void {
   const { ids } = req.body ?? {};
@@ -12,7 +13,7 @@ export function removeRules(req: Request, res: Response): void {
   const removedRules = firewallService.removeRules(ids);
   res.status(200).json({
     removed: removedRules.map((rule) => rule.toDetailedJSON()),
-    status: 'success',
+    status: constants.statusSuccess,
   });
 }
 
@@ -26,7 +27,7 @@ export function getRules(req: Request, res: Response): void {
     ips: { values: rules.filter((rule) => rule.type === RuleType.IP) },
     domains: { values: rules.filter((rule) => rule.type === RuleType.DOMAIN) },
     ports: { values: rules.filter((rule) => rule.type === RuleType.PORT) },
-    status: 'success',
+    status: constants.statusSuccess,
   });
 }
 
@@ -39,7 +40,7 @@ export function updateRuleStatus(req: Request, res: Response): void {
   const updatedRules = firewallService.updateRulesStatus(ids, active);
   res.status(200).json({
     updated: updatedRules.map((rule) => rule.toDetailedJSON()),
-    status: 'success',
+    status: constants.statusSuccess,
   });
 }
 

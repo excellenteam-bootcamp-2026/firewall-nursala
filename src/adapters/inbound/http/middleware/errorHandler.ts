@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { RuleValidationError } from '../../../../application/errors/RuleValidationError';
 import { RuleNotFoundError } from '../../../../application/errors/RuleNotFoundError';
+import { constants } from '../../../../main/config/env';
 
 export function errorHandler(
   err: Error,
@@ -13,7 +14,7 @@ export function errorHandler(
 
   if (err instanceof RuleNotFoundError) {
     res.status(404).json({
-      status: 'error',
+      status: constants.statusError,
       code: 'RULE_NOT_FOUND',
       message: err.message,
     });
@@ -23,7 +24,7 @@ export function errorHandler(
   const code = err instanceof RuleValidationError ? err.code : 'VALIDATION_ERROR';
 
   res.status(400).json({
-    status: 'error',
+    status: constants.statusError,
     code: code,
     message: err.message,
   });

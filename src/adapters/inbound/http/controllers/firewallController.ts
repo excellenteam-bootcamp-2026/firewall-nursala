@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { firewallService } from '../../../../main/composition';
 import { RuleType } from '../../../../domain/models/RuleType';
 import { validateValues, validateMode } from '../validators/requestValidators';
+import { constants } from '../../../../main/config/env';
 
 export function addRule(req: Request, res: Response, type: RuleType): void {
   const { values, mode } = req.body ?? {};
@@ -14,6 +15,6 @@ export function addRule(req: Request, res: Response, type: RuleType): void {
     type: type,
     mode: mode,
     values: addedRules,
-    status: 'success',
+    status: constants.statusSuccess,
   });
 }
