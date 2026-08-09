@@ -1,9 +1,11 @@
-import { IFirewallRepository, AnyFirewallRule } from '../../domain/ports/IFirewallRepository';
+import {
+  IFirewallRepository,
+  AnyFirewallRule,
+} from "../../domain/ports/IFirewallRepository";
 
 export class InMemoryFirewallRepository implements IFirewallRepository {
   private rules: AnyFirewallRule[] = [];
   private currentId: number = 1;
-
 
   getAll(): AnyFirewallRule[] {
     return [...this.rules];
@@ -25,14 +27,17 @@ export class InMemoryFirewallRepository implements IFirewallRepository {
     return true;
   }
 
-  update(id: number, updatedRule: AnyFirewallRule): AnyFirewallRule | undefined {
+  update(
+    id: number,
+    updatedRule: AnyFirewallRule,
+  ): AnyFirewallRule | undefined {
     const index = this.rules.findIndex((rule) => rule.id === id);
     if (index === -1) return undefined;
     this.rules[index] = updatedRule;
     return updatedRule;
   }
 
-    getNextId(): number {
-        return this.currentId++;
-    }
+  getNextId(): number {
+    return this.currentId++;
+  }
 }
