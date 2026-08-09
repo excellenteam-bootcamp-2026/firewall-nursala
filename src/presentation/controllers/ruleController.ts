@@ -1,9 +1,6 @@
 import { Request, Response } from 'express';
 import { firewallService } from '../../composition';
 import { RuleType } from '../../domain/models/RuleType';
-import { IpRule } from '../../domain/models/IpRule';
-import { DomainRule } from '../../domain/models/DomainRule';
-import { PortRule } from '../../domain/models/PortRule';
 import { validateIds, validateActive } from '../validators/requestValidators';
 import { RuleValidationError } from '../../application/errors/RuleValidationError';
 
@@ -26,9 +23,9 @@ export function getRules(req: Request, res: Response): void {
   const rules = firewallService.getAllRules(ruleType);
 
   res.status(200).json({
-    ips: { values: rules.filter((rule) => rule instanceof IpRule) },
-    domains: { values: rules.filter((rule) => rule instanceof DomainRule) },
-    ports: { values: rules.filter((rule) => rule instanceof PortRule) },
+    ips: { values: rules.filter((rule) => rule.type === RuleType.IP) },
+    domains: { values: rules.filter((rule) => rule.type === RuleType.DOMAIN) },
+    ports: { values: rules.filter((rule) => rule.type === RuleType.PORT) },
     status: 'success',
   });
 }
