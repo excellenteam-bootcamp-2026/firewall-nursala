@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { firewallService } from '../../composition';
-import { RuleType } from '../../domain/models/RuleType';
+import { firewallService } from '../../../../main/composition';
+import { RuleType } from '../../../../domain/models/RuleType';
 import { validateValues, validateMode } from '../validators/requestValidators';
 
 export function addRule(req: Request, res: Response, type: RuleType): void {

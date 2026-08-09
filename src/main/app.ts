@@ -1,6 +1,6 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
-import firewallRouter from './presentation/routes/firewallRouter';
-import { errorHandler } from './presentation/middleware/errorHandler';
+import firewallRouter from '../adapters/inbound/http/routes/firewallRouter';
+import { errorHandler } from '../adapters/inbound/http/middleware/errorHandler';
 
 const app: Application = express();
 

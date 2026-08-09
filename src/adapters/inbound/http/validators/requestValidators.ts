@@ -1,4 +1,4 @@
-import { RuleValidationError } from '../../application/errors/RuleValidationError';
+import { RuleValidationError } from '../../../../application/errors/RuleValidationError';
 
 export function validateValues(values: unknown): void {
   if (!Array.isArray(values) || values.length === 0) {

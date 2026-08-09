@@ -1,4 +1,4 @@
-import { FirewallRule } from '../models/FirewallRule';
+import { FirewallRule } from '../../domain/models/FirewallRule';
 
 export type AnyFirewallRule = FirewallRule<string | number>;
 

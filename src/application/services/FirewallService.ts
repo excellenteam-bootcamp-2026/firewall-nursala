@@ -1,7 +1,7 @@
 import {
   IFirewallRepository,
   AnyFirewallRule,
-} from "../../domain/ports/IFirewallRepository";
+} from "../ports/IFirewallRepository";
 import { RuleType } from "../../domain/models/RuleType";
 import { Mode } from "../../domain/models/FirewallRule";
 import { RuleValidationError } from "../errors/RuleValidationError";

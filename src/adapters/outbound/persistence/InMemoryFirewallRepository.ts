@@ -1,7 +1,7 @@
 import {
   IFirewallRepository,
   AnyFirewallRule,
-} from "../../domain/ports/IFirewallRepository";
+} from "../../../application/ports/IFirewallRepository";
 
 export class InMemoryFirewallRepository implements IFirewallRepository {
   private rules: AnyFirewallRule[] = [];

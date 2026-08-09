@@ -1,4 +1,4 @@
-import { AnyFirewallRule } from '../../domain/ports/IFirewallRepository';
+import { AnyFirewallRule } from '../ports/IFirewallRepository';
 import { RuleType } from '../../domain/models/RuleType';
 import { Mode } from '../../domain/models/FirewallRule';
 import { IpRule } from '../../domain/models/IpRule';

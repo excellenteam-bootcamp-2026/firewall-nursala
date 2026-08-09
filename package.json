@@ -4,9 +4,9 @@
   "description": "��#\u0000 \u0000f\u0000i\u0000r\u0000e\u0000w\u0000a\u0000l\u0000l\u0000-\u0000n\u0000u\u0000r\u0000s\u0000a\u0000l\u0000a\u0000\r\u0000 \u0000",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --watch \"src/**/*.ts\" --exec \"ts-node\" src/server.ts",
+    "dev": "nodemon --watch \"src/**/*.ts\" --exec \"ts-node\" src/main/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/main/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

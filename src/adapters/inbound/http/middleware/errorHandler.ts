@@ -1,7 +1,7 @@
-// src/presentation/middleware/errorHandler.ts
+// src/adapters/inbound/http/middleware/errorHandler.ts
 import { Request, Response, NextFunction } from 'express';
-import { RuleValidationError } from '../../application/errors/RuleValidationError';
-import { RuleNotFoundError } from '../../application/errors/RuleNotFoundError';
+import { RuleValidationError } from '../../../../application/errors/RuleValidationError';
+import { RuleNotFoundError } from '../../../../application/errors/RuleNotFoundError';
 
 export function errorHandler(
   err: Error,

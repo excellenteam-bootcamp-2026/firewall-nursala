@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { firewallService } from '../../composition';
-import { RuleType } from '../../domain/models/RuleType';
+import { firewallService } from '../../../../main/composition';
+import { RuleType } from '../../../../domain/models/RuleType';
 import { validateIds, validateActive } from '../validators/requestValidators';
-import { RuleValidationError } from '../../application/errors/RuleValidationError';
+import { RuleValidationError } from '../../../../application/errors/RuleValidationError';
 
 export function removeRules(req: Request, res: Response): void {
   const { ids } = req.body ?? {};

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { addRule } from '../controllers/firewallController';
-import { RuleType } from '../../domain/models/RuleType';
+import { RuleType } from '../../../../domain/models/RuleType';
 
 const router = Router();
 
