@@ -8,15 +8,16 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().max(65535).min(1),
   DEV_DATABASE_URI: z.string().url(),
   PROD_DATABASE_URI: z.string().url(),
-  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]),
+  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   LOG_FILE_PATH: z.string().default("logs/app.log"),
 });
+
 const env = EnvSchema.parse(process.env);
 export const config = {
   port: env.PORT,
   env: env.ENV,
   databaseUri: env.ENV === "dev" ? env.DEV_DATABASE_URI : env.PROD_DATABASE_URI,
-  logLevel: env.ENV === "dev" ? env.LOG_LEVEL : "info",
+  logLevel: env.LOG_LEVEL,
   logFilePath: env.LOG_FILE_PATH,
 };
 

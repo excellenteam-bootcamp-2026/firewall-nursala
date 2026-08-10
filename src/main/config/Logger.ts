@@ -1,5 +1,5 @@
 import winston from "winston";
-import { config, constants } from "./env";
+import { config } from "./env";
 
 class LoggerSingleton {
   private static instance: winston.Logger | Console;
@@ -10,7 +10,7 @@ class LoggerSingleton {
     if (!LoggerSingleton.instance) {
       try {
         LoggerSingleton.instance = winston.createLogger({
-          level: config.env === "dev" ? config.logLevel : "info",
+          level: config.logLevel,
           format: winston.format.simple(),
           transports: [
             config.env === "dev"
