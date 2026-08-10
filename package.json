@@ -23,7 +23,9 @@
   "homepage": "https://github.com/excellenteam-bootcamp-2026/firewall-nursala#readme",
   "dependencies": {
     "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
+    "postgres": "^3.4.9",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
@@ -32,11 +34,13 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.2",
     "@types/supertest": "^7.2.1",
+    "drizzle-kit": "^0.31.10",
     "jest": "^30.4.2",
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.12",
     "typescript": "^5.7.3"
   }
 }
