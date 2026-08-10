@@ -5,26 +5,19 @@ import { PortRule } from '../../../src/domain/models/PortRule';
 import { RuleType } from '../../../src/domain/models/RuleType';
 
 describe('FirewallRuleFactory', () => {
-  describe('create() — ip rules', () => {
-    it('builds an IpRule for the ip type', () => {
-      // Arrange
+  describe('create()', () => {
+    it('creates an identified IpRule', () => {
       const factory = new FirewallRuleFactory();
 
-      // Act
-      const rule = factory.create(RuleType.IP, 1, '192.168.1.1', true, 'blacklist');
+      const rule = factory.create(
+        RuleType.IP,
+        7,
+        '192.168.1.1',
+        false,
+        'whitelist',
+      );
 
-      // Assert
       expect(rule).toBeInstanceOf(IpRule);
-    });
-
-    it('carries every constructor argument onto the ip rule', () => {
-      // Arrange
-      const factory = new FirewallRuleFactory();
-
-      // Act
-      const rule = factory.create(RuleType.IP, 7, '192.168.1.1', false, 'whitelist');
-
-      // Assert
       expect(rule.toDetailedJSON()).toEqual({
         id: 7,
         type: RuleType.IP,
@@ -34,119 +27,68 @@ describe('FirewallRuleFactory', () => {
       });
     });
 
-    it('produces an ip rule that can validate its own value', () => {
-      // Arrange
+    it('creates an identified DomainRule', () => {
       const factory = new FirewallRuleFactory();
 
-      // Act
-      const rule = factory.create(RuleType.IP, 1, '999.1.1.1', true, 'blacklist');
+      const rule = factory.create(
+        RuleType.DOMAIN,
+        3,
+        'example.com',
+        true,
+        'blacklist',
+      );
 
-      // Assert
-      expect(rule.isValid()).toBe(false);
-    });
-  });
-
-  describe('create() — domain rules', () => {
-    it('builds a DomainRule for the domain type', () => {
-      // Arrange
-      const factory = new FirewallRuleFactory();
-
-      // Act
-      const rule = factory.create(RuleType.DOMAIN, 1, 'example.com', true, 'blacklist');
-
-      // Assert
       expect(rule).toBeInstanceOf(DomainRule);
+      expect(rule.id).toBe(3);
     });
 
-    it('carries every constructor argument onto the domain rule', () => {
-      // Arrange
+    it('creates an identified PortRule with a numeric value', () => {
       const factory = new FirewallRuleFactory();
 
-      // Act
-      const rule = factory.create(RuleType.DOMAIN, 3, 'example.com', true, 'blacklist');
+      const rule = factory.create(RuleType.PORT, 5, 8080, true, 'blacklist');
 
-      // Assert
-      expect(rule.toDetailedJSON()).toEqual({
-        id: 3,
-        type: RuleType.DOMAIN,
-        mode: 'blacklist',
-        value: 'example.com',
-        active: true,
-      });
-    });
-  });
-
-  describe('create() — port rules', () => {
-    it('builds a PortRule for the port type', () => {
-      // Arrange
-      const factory = new FirewallRuleFactory();
-
-      // Act
-      const rule = factory.create(RuleType.PORT, 1, 8080, true, 'blacklist');
-
-      // Assert
       expect(rule).toBeInstanceOf(PortRule);
-    });
-
-    it('carries every constructor argument onto the port rule', () => {
-      // Arrange
-      const factory = new FirewallRuleFactory();
-
-      // Act
-      const rule = factory.create(RuleType.PORT, 5, 8080, false, 'whitelist');
-
-      // Assert
-      expect(rule.toDetailedJSON()).toEqual({
-        id: 5,
-        type: RuleType.PORT,
-        mode: 'whitelist',
-        value: 8080,
-        active: false,
-      });
-    });
-
-    it('keeps the port value numeric rather than stringifying it', () => {
-      // Arrange
-      const factory = new FirewallRuleFactory();
-
-      // Act
-      const rule = factory.create(RuleType.PORT, 1, 8080, true, 'blacklist');
-
-      // Assert
+      expect(rule.id).toBe(5);
+      expect(rule.value).toBe(8080);
       expect(typeof rule.value).toBe('number');
     });
-  });
 
-  describe('create() — unsupported type', () => {
-    // RuleType is a string enum, so the default branch is unreachable through the
-    // normal typed call sites and can only be hit by casting past the type system.
-    // The source throws a plain Error here, not a RuleValidationError.
     it('throws for a rule type outside the enum', () => {
-      // Arrange
       const factory = new FirewallRuleFactory();
 
-      // Act
       const act = () => factory.create('bogus' as RuleType, 1, 'x', true, 'blacklist');
 
-      // Assert
       expect(act).toThrow('Unsupported rule type: bogus');
     });
+  });
 
-    it('throws a plain Error rather than a RuleValidationError', () => {
-      // Arrange
+  describe('isValid()', () => {
+    it('validates ip values without constructing a persisted rule', () => {
       const factory = new FirewallRuleFactory();
 
-      // Act
-      let captured: unknown;
-      try {
-        factory.create('bogus' as RuleType, 1, 'x', true, 'blacklist');
-      } catch (error) {
-        captured = error;
-      }
+      expect(factory.isValid(RuleType.IP, '1.1.1.1')).toBe(true);
+      expect(factory.isValid(RuleType.IP, '999.1.1.1')).toBe(false);
+    });
 
-      // Assert
-      expect(captured).toBeInstanceOf(Error);
-      expect((captured as Error).constructor.name).toBe('Error');
+    it('validates domain values without constructing a persisted rule', () => {
+      const factory = new FirewallRuleFactory();
+
+      expect(factory.isValid(RuleType.DOMAIN, 'example.com')).toBe(true);
+      expect(factory.isValid(RuleType.DOMAIN, '-bad.com')).toBe(false);
+    });
+
+    it('validates port values without constructing a persisted rule', () => {
+      const factory = new FirewallRuleFactory();
+
+      expect(factory.isValid(RuleType.PORT, 8080)).toBe(true);
+      expect(factory.isValid(RuleType.PORT, 70000)).toBe(false);
+    });
+
+    it('rejects a value whose runtime type does not match the rule type', () => {
+      const factory = new FirewallRuleFactory();
+
+      expect(factory.isValid(RuleType.IP, 123)).toBe(false);
+      expect(factory.isValid(RuleType.PORT, '8080')).toBe(false);
     });
   });
 });

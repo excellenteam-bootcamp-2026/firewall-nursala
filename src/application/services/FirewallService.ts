@@ -35,18 +35,14 @@ export class FirewallService {
     active: boolean,
     mode: Mode,
   ): AnyFirewallRule[] {
-    const rules = values.map((value) => {
-      const id = this.repository.getNextId();
-      return this.factory.create(type, id, value, active, mode);
-    });
+    const validationResults = values.map((value) => this.factory.isValid(type, value));
 
-    const invalidRule = rules.find((rule) => !rule.isValid());
-    if (invalidRule) {
+    if (validationResults.includes(false)) {
       const { code, message } = VALIDATION_ERRORS[type];
       throw new RuleValidationError(code, message);
     }
 
-    return rules.map((rule) => this.repository.add(rule));
+    return values.map((value) => this.repository.create(type, value, active, mode));
   }
 
   removeRules(ids: number[]): AnyFirewallRule[] {

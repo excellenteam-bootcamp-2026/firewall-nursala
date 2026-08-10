@@ -52,3 +52,5 @@ export abstract class FirewallRule<T extends string | number> implements IFirewa
     };
   }
 }
+
+export type AnyFirewallRule = FirewallRule<string | number>;

@@ -121,11 +121,21 @@ describe('FirewallService', () => {
 
         // Act
         captureError(() =>
-          service.addRule(['1.1.1.1', '999.1.1.1'], RuleType.IP, true, 'blacklist'),
+          service.addRule(
+            ['1.1.1.1', '999.1.1.1', '2.2.2.2'],
+            RuleType.IP,
+            true,
+            'blacklist',
+          ),
         );
 
         // Assert
-        expect(repository.addCalls).toEqual([]);
+        expect(repository.createCalls).toEqual([]);
+        expect(factory.validationCalls.map((call) => call.value)).toEqual([
+          '1.1.1.1',
+          '999.1.1.1',
+          '2.2.2.2',
+        ]);
       });
 
       it('rejects the batch even when the invalid value comes first', () => {
@@ -200,10 +210,7 @@ describe('FirewallService', () => {
         expect((error as RuleValidationError).code).toBe('INVALID_PORT');
       });
 
-      // Documents a real side effect of the current implementation: ids are drawn
-      // from the repository before validation runs, so a rejected batch still burns
-      // them. Delete this test if that behaviour is ever intentionally changed.
-      it('still consumes ids from the repository when the batch is rejected', () => {
+      it('does not consume ids when the batch is rejected', () => {
         // Arrange
         const { service, repository, factory } = createTestService();
         factory.markInvalid('999.1.1.1');
@@ -215,7 +222,7 @@ describe('FirewallService', () => {
         const added = service.addRule(['1.1.1.1'], RuleType.IP, true, 'blacklist');
 
         // Assert
-        expect(added[0]!.id).toBe(3);
+        expect(added[0]!.id).toBe(1);
         expect(repository.getAll()).toHaveLength(1);
       });
     });

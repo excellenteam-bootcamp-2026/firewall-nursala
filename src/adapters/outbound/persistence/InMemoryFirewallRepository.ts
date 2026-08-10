@@ -2,10 +2,15 @@ import {
   IFirewallRepository,
   AnyFirewallRule,
 } from "../../../application/ports/IFirewallRepository";
+import { FirewallRuleFactory } from "../../../application/factories/FirewallRuleFactory";
+import { Mode } from "../../../domain/models/FirewallRule";
+import { RuleType } from "../../../domain/models/RuleType";
 
 export class InMemoryFirewallRepository implements IFirewallRepository {
   private rules: AnyFirewallRule[] = [];
   private currentId: number = 1;
+
+  constructor(private readonly factory: FirewallRuleFactory) {}
 
   getAll(): AnyFirewallRule[] {
     return [...this.rules];
@@ -15,8 +20,15 @@ export class InMemoryFirewallRepository implements IFirewallRepository {
     return this.rules.find((rule) => rule.id === id);
   }
 
-  add(rule: AnyFirewallRule): AnyFirewallRule {
+  create(
+    type: RuleType,
+    value: string | number,
+    active: boolean,
+    mode: Mode,
+  ): AnyFirewallRule {
+    const rule = this.factory.create(type, this.currentId, value, active, mode);
     this.rules.push(rule);
+    this.currentId += 1;
     return rule;
   }
 
@@ -35,9 +47,5 @@ export class InMemoryFirewallRepository implements IFirewallRepository {
     if (index === -1) return undefined;
     this.rules[index] = updatedRule;
     return updatedRule;
-  }
-
-  getNextId(): number {
-    return this.currentId++;
   }
 }

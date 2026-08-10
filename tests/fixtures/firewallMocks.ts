@@ -45,13 +45,14 @@ export class MockFirewallRepository implements IFirewallRepository {
   private rules: AnyFirewallRule[] = [];
   private nextId = 1;
 
-  readonly addCalls: AnyFirewallRule[] = [];
+  readonly createCalls: Array<{
+    type: RuleType;
+    value: string | number;
+    active: boolean;
+    mode: Mode;
+  }> = [];
   readonly removeCalls: number[] = [];
   readonly updateCalls: Array<{ id: number; rule: AnyFirewallRule }> = [];
-
-  getNextId(): number {
-    return this.nextId++;
-  }
 
   getAll(): AnyFirewallRule[] {
     return [...this.rules];
@@ -61,9 +62,23 @@ export class MockFirewallRepository implements IFirewallRepository {
     return this.rules.find((rule) => rule.id === id);
   }
 
-  add(rule: AnyFirewallRule): AnyFirewallRule {
-    this.addCalls.push(rule);
+  create(
+    type: RuleType,
+    value: string | number,
+    active: boolean,
+    mode: Mode,
+  ): AnyFirewallRule {
+    this.createCalls.push({ type, value, active, mode });
+    const rule = new StubRule(
+      this.nextId,
+      value,
+      active,
+      mode,
+      type,
+      true,
+    );
     this.rules.push(rule);
+    this.nextId += 1;
     return rule;
   }
 
@@ -87,7 +102,7 @@ export class MockFirewallRepository implements IFirewallRepository {
     return updatedRule;
   }
 
-  /** Places rules directly into storage, bypassing add() so call tracking stays clean. */
+  /** Places rules directly into storage, bypassing create() so call tracking stays clean. */
   seed(...rules: AnyFirewallRule[]): void {
     this.rules.push(...rules);
   }
@@ -95,18 +110,15 @@ export class MockFirewallRepository implements IFirewallRepository {
 
 /**
  * Stands in for FirewallRuleFactory. It is structurally compatible because the
- * real factory exposes only a public create(), so no inheritance is needed.
- * Values registered via markInvalid() produce rules whose isValid() is false.
+ * real factory has no private state, so no inheritance is needed.
+ * Values registered via markInvalid() are reported as invalid creation data.
  */
 export class MockFirewallRuleFactory {
   private readonly invalidValues = new Set<string | number>();
 
-  readonly createCalls: Array<{
+  readonly validationCalls: Array<{
     type: RuleType;
-    id: number;
     value: string | number;
-    active: boolean;
-    mode: Mode;
   }> = [];
 
   markInvalid(...values: (string | number)[]): void {
@@ -120,8 +132,12 @@ export class MockFirewallRuleFactory {
     active: boolean,
     mode: Mode,
   ): AnyFirewallRule {
-    this.createCalls.push({ type, id, value, active, mode });
     return new StubRule(id, value, active, mode, type, !this.invalidValues.has(value));
+  }
+
+  isValid(type: RuleType, value: string | number): boolean {
+    this.validationCalls.push({ type, value });
+    return !this.invalidValues.has(value);
   }
 }
 
