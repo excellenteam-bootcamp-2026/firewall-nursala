@@ -76,9 +76,10 @@ export class FirewallService {
     const updatedRules = this.findAllOrThrow(ids);
 
     for (const rule of updatedRules) {
-      // No repository.update() needed: getById returns the stored reference,
-      // so mutating it in place is already visible inside the repository.
+      // Persist through the port rather than relying on getById returning a live
+      // reference, so repositories that hand back copies stay correct.
       rule.setActive(active);
+      this.repository.update(rule.id, rule);
     }
 
     return updatedRules;

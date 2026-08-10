@@ -1,14 +1,22 @@
 import { Router } from 'express';
-import ipRoutes from './ipRoutes';
-import domainRoutes from './domainRoutes';
-import portRoutes from './portRoutes';
-import ruleRoutes from './ruleRoutes';
+import { FirewallService } from '../../../../application/services/FirewallService';
+import { createFirewallController } from '../controllers/firewallController';
+import { createRuleController } from '../controllers/ruleController';
+import { createIpRoutes } from './ipRoutes';
+import { createDomainRoutes } from './domainRoutes';
+import { createPortRoutes } from './portRoutes';
+import { createRuleRoutes } from './ruleRoutes';
 
-const firewallRouter = Router();
+export function createFirewallRouter(service: FirewallService): Router {
+  const addRule = createFirewallController(service);
+  const ruleController = createRuleController(service);
 
-firewallRouter.use(ipRoutes);
-firewallRouter.use(domainRoutes);
-firewallRouter.use(portRoutes);
-firewallRouter.use(ruleRoutes);
+  const firewallRouter = Router();
 
-export default firewallRouter;
+  firewallRouter.use(createIpRoutes(addRule));
+  firewallRouter.use(createDomainRoutes(addRule));
+  firewallRouter.use(createPortRoutes(addRule));
+  firewallRouter.use(createRuleRoutes(ruleController));
+
+  return firewallRouter;
+}

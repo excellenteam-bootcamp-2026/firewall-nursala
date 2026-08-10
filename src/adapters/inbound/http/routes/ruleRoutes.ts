@@ -1,10 +1,14 @@
-﻿import { Router } from 'express';
-import { removeRules, getRules, updateRuleStatus } from '../controllers/ruleController';
+import { Router } from 'express';
+import { createRuleController } from '../controllers/ruleController';
 
-const router = Router();
+export function createRuleRoutes(
+  controller: ReturnType<typeof createRuleController>,
+): Router {
+  const router = Router();
 
-router.delete('/rules', removeRules);
-router.get('/rules', getRules);
-router.patch('/rules/status', updateRuleStatus);
+  router.delete('/rules', controller.removeRules);
+  router.get('/rules', controller.getRules);
+  router.patch('/rules/status', controller.updateRuleStatus);
 
-export default router;
+  return router;
+}

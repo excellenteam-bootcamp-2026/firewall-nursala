@@ -1,9 +1,13 @@
 import { Router } from 'express';
-import { addRule } from '../controllers/firewallController';
+import { createFirewallController } from '../controllers/firewallController';
 import { RuleType } from '../../../../domain/models/RuleType';
 
-const router = Router();
+export function createPortRoutes(
+  addRule: ReturnType<typeof createFirewallController>,
+): Router {
+  const router = Router();
 
-router.post('/ports', (req, res) => addRule(req, res, RuleType.PORT));
+  router.post('/ports', (req, res) => addRule(req, res, RuleType.PORT));
 
-export default router;
+  return router;
+}

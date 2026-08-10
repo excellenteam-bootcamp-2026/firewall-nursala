@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { RuleValidationError } from '../../../../application/errors/RuleValidationError';
 import { RuleNotFoundError } from '../../../../application/errors/RuleNotFoundError';
-import { constants } from '../../../../main/config/env';
+import { constants } from '../constants';
 
 export function errorHandler(
   err: Error,

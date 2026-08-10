@@ -1,47 +1,51 @@
 import { Request, Response } from 'express';
-import { firewallService } from '../../../../main/composition';
+import { FirewallService } from '../../../../application/services/FirewallService';
 import { RuleType } from '../../../../domain/models/RuleType';
 import { validateIds, validateActive } from '../validators/requestValidators';
 import { RuleValidationError } from '../../../../application/errors/RuleValidationError';
-import { constants } from '../../../../main/config/env';
+import { constants } from '../constants';
 
-export function removeRules(req: Request, res: Response): void {
-  const { ids } = req.body ?? {};
+export function createRuleController(service: FirewallService) {
+  function removeRules(req: Request, res: Response): void {
+    const { ids } = req.body ?? {};
 
-  validateIds(ids);
+    validateIds(ids);
 
-  const removedRules = firewallService.removeRules(ids);
-  res.status(200).json({
-    removed: removedRules.map((rule) => rule.toDetailedJSON()),
-    status: constants.statusSuccess,
-  });
-}
+    const removedRules = service.removeRules(ids);
+    res.status(200).json({
+      removed: removedRules.map((rule) => rule.toDetailedJSON()),
+      status: constants.statusSuccess,
+    });
+  }
 
-export function getRules(req: Request, res: Response): void {
-  const type = req.query.type as string | undefined;
-  const ruleType = parseRuleType(type);
+  function getRules(req: Request, res: Response): void {
+    const type = req.query.type as string | undefined;
+    const ruleType = parseRuleType(type);
 
-  const rules = firewallService.getAllRules(ruleType);
+    const rules = service.getAllRules(ruleType);
 
-  res.status(200).json({
-    ips: { values: rules.filter((rule) => rule.type === RuleType.IP) },
-    domains: { values: rules.filter((rule) => rule.type === RuleType.DOMAIN) },
-    ports: { values: rules.filter((rule) => rule.type === RuleType.PORT) },
-    status: constants.statusSuccess,
-  });
-}
+    res.status(200).json({
+      ips: { values: rules.filter((rule) => rule.type === RuleType.IP) },
+      domains: { values: rules.filter((rule) => rule.type === RuleType.DOMAIN) },
+      ports: { values: rules.filter((rule) => rule.type === RuleType.PORT) },
+      status: constants.statusSuccess,
+    });
+  }
 
-export function updateRuleStatus(req: Request, res: Response): void {
-  const { ids, active } = req.body ?? {};
+  function updateRuleStatus(req: Request, res: Response): void {
+    const { ids, active } = req.body ?? {};
 
-  validateIds(ids);
-  validateActive(active);
+    validateIds(ids);
+    validateActive(active);
 
-  const updatedRules = firewallService.updateRulesStatus(ids, active);
-  res.status(200).json({
-    updated: updatedRules.map((rule) => rule.toDetailedJSON()),
-    status: constants.statusSuccess,
-  });
+    const updatedRules = service.updateRulesStatus(ids, active);
+    res.status(200).json({
+      updated: updatedRules.map((rule) => rule.toDetailedJSON()),
+      status: constants.statusSuccess,
+    });
+  }
+
+  return { removeRules, getRules, updateRuleStatus };
 }
 
 function parseRuleType(type: string | undefined): RuleType | undefined {

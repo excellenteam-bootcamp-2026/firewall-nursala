@@ -20,9 +20,3 @@ export const config = {
   logLevel: env.LOG_LEVEL,
   logFilePath: env.LOG_FILE_PATH,
 };
-
-export const constants = {
-  statusSuccess: "success",
-  statusError: "error",
-  apiBasePath: "/api/firewall",
-};
