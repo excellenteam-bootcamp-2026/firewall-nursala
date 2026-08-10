@@ -12,37 +12,37 @@ export class InMemoryFirewallRepository implements IFirewallRepository {
 
   constructor(private readonly factory: FirewallRuleFactory) {}
 
-  getAll(): AnyFirewallRule[] {
+  async getAll(): Promise<AnyFirewallRule[]> {
     return [...this.rules];
   }
 
-  getById(id: number): AnyFirewallRule | undefined {
+  async getById(id: number): Promise<AnyFirewallRule | undefined> {
     return this.rules.find((rule) => rule.id === id);
   }
 
-  create(
+  async create(
     type: RuleType,
     value: string | number,
     active: boolean,
     mode: Mode,
-  ): AnyFirewallRule {
+  ): Promise<AnyFirewallRule> {
     const rule = this.factory.create(type, this.currentId, value, active, mode);
     this.rules.push(rule);
     this.currentId += 1;
     return rule;
   }
 
-  remove(id: number): boolean {
+  async remove(id: number): Promise<boolean> {
     const index = this.rules.findIndex((rule) => rule.id === id);
     if (index === -1) return false;
     this.rules.splice(index, 1);
     return true;
   }
 
-  update(
+  async update(
     id: number,
     updatedRule: AnyFirewallRule,
-  ): AnyFirewallRule | undefined {
+  ): Promise<AnyFirewallRule | undefined> {
     const index = this.rules.findIndex((rule) => rule.id === id);
     if (index === -1) return undefined;
     this.rules[index] = updatedRule;

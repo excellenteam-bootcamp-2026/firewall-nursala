@@ -5,13 +5,17 @@ import { validateValues, validateMode } from '../validators/requestValidators';
 import { constants } from '../constants';
 
 export function createFirewallController(service: FirewallService) {
-  return function addRule(req: Request, res: Response, type: RuleType): void {
+  return async function addRule(
+    req: Request,
+    res: Response,
+    type: RuleType,
+  ): Promise<void> {
     const { values, mode } = req.body ?? {};
 
     validateValues(values);
     validateMode(mode);
 
-    const addedRules = service.addRule(values, type, true, mode);
+    const addedRules = await service.addRule(values, type, true, mode);
     res.status(201).json({
       type: type,
       mode: mode,

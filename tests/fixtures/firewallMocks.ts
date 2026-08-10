@@ -54,20 +54,20 @@ export class MockFirewallRepository implements IFirewallRepository {
   readonly removeCalls: number[] = [];
   readonly updateCalls: Array<{ id: number; rule: AnyFirewallRule }> = [];
 
-  getAll(): AnyFirewallRule[] {
+  async getAll(): Promise<AnyFirewallRule[]> {
     return [...this.rules];
   }
 
-  getById(id: number): AnyFirewallRule | undefined {
+  async getById(id: number): Promise<AnyFirewallRule | undefined> {
     return this.rules.find((rule) => rule.id === id);
   }
 
-  create(
+  async create(
     type: RuleType,
     value: string | number,
     active: boolean,
     mode: Mode,
-  ): AnyFirewallRule {
+  ): Promise<AnyFirewallRule> {
     this.createCalls.push({ type, value, active, mode });
     const rule = new StubRule(
       this.nextId,
@@ -82,7 +82,7 @@ export class MockFirewallRepository implements IFirewallRepository {
     return rule;
   }
 
-  remove(id: number): boolean {
+  async remove(id: number): Promise<boolean> {
     this.removeCalls.push(id);
     const index = this.rules.findIndex((rule) => rule.id === id);
     if (index === -1) {
@@ -92,7 +92,10 @@ export class MockFirewallRepository implements IFirewallRepository {
     return true;
   }
 
-  update(id: number, updatedRule: AnyFirewallRule): AnyFirewallRule | undefined {
+  async update(
+    id: number,
+    updatedRule: AnyFirewallRule,
+  ): Promise<AnyFirewallRule | undefined> {
     this.updateCalls.push({ id, rule: updatedRule });
     const index = this.rules.findIndex((rule) => rule.id === id);
     if (index === -1) {

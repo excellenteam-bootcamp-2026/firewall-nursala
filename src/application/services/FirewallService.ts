@@ -29,12 +29,12 @@ export class FirewallService {
     private factory: FirewallRuleFactory,
   ) {}
 
-  addRule(
+  async addRule(
     values: (string | number)[],
     type: RuleType,
     active: boolean,
     mode: Mode,
-  ): AnyFirewallRule[] {
+  ): Promise<AnyFirewallRule[]> {
     const validationResults = values.map((value) => this.factory.isValid(type, value));
 
     if (validationResults.includes(false)) {
@@ -42,15 +42,21 @@ export class FirewallService {
       throw new RuleValidationError(code, message);
     }
 
-    return values.map((value) => this.repository.create(type, value, active, mode));
+    const createdRules: AnyFirewallRule[] = [];
+
+    for (const value of values) {
+      createdRules.push(await this.repository.create(type, value, active, mode));
+    }
+
+    return createdRules;
   }
 
-  removeRules(ids: number[]): AnyFirewallRule[] {
-    const rules = this.findAllOrThrow(ids);
+  async removeRules(ids: number[]): Promise<AnyFirewallRule[]> {
+    const rules = await this.findAllOrThrow(ids);
     const removedRules: AnyFirewallRule[] = [];
 
     for (const rule of rules) {
-      if (this.repository.remove(rule.id)) {
+      if (await this.repository.remove(rule.id)) {
         removedRules.push(rule);
       }
     }
@@ -58,8 +64,8 @@ export class FirewallService {
     return removedRules;
   }
 
-  getAllRules(type?: RuleType): AnyFirewallRule[] {
-    const rules = this.repository.getAll();
+  async getAllRules(type?: RuleType): Promise<AnyFirewallRule[]> {
+    const rules = await this.repository.getAll();
 
     if (!type) {
       return rules;
@@ -68,25 +74,25 @@ export class FirewallService {
     return rules.filter((rule) => this.matchesType(rule, type));
   }
 
-  updateRulesStatus(ids: number[], active: boolean): AnyFirewallRule[] {
-    const updatedRules = this.findAllOrThrow(ids);
+  async updateRulesStatus(ids: number[], active: boolean): Promise<AnyFirewallRule[]> {
+    const updatedRules = await this.findAllOrThrow(ids);
 
     for (const rule of updatedRules) {
       // Persist through the port rather than relying on getById returning a live
       // reference, so repositories that hand back copies stay correct.
       rule.setActive(active);
-      this.repository.update(rule.id, rule);
+      await this.repository.update(rule.id, rule);
     }
 
     return updatedRules;
   }
 
-  private findAllOrThrow(ids: number[]): AnyFirewallRule[] {
+  private async findAllOrThrow(ids: number[]): Promise<AnyFirewallRule[]> {
     const rules: AnyFirewallRule[] = [];
     const missingIds: number[] = [];
 
     for (const id of ids) {
-      const rule = this.repository.getById(id);
+      const rule = await this.repository.getById(id);
       if (rule) {
         rules.push(rule);
       } else {

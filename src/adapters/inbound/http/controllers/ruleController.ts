@@ -6,23 +6,23 @@ import { RuleValidationError } from '../../../../application/errors/RuleValidati
 import { constants } from '../constants';
 
 export function createRuleController(service: FirewallService) {
-  function removeRules(req: Request, res: Response): void {
+  async function removeRules(req: Request, res: Response): Promise<void> {
     const { ids } = req.body ?? {};
 
     validateIds(ids);
 
-    const removedRules = service.removeRules(ids);
+    const removedRules = await service.removeRules(ids);
     res.status(200).json({
       removed: removedRules.map((rule) => rule.toDetailedJSON()),
       status: constants.statusSuccess,
     });
   }
 
-  function getRules(req: Request, res: Response): void {
+  async function getRules(req: Request, res: Response): Promise<void> {
     const type = req.query.type as string | undefined;
     const ruleType = parseRuleType(type);
 
-    const rules = service.getAllRules(ruleType);
+    const rules = await service.getAllRules(ruleType);
 
     res.status(200).json({
       ips: { values: rules.filter((rule) => rule.type === RuleType.IP) },
@@ -32,13 +32,13 @@ export function createRuleController(service: FirewallService) {
     });
   }
 
-  function updateRuleStatus(req: Request, res: Response): void {
+  async function updateRuleStatus(req: Request, res: Response): Promise<void> {
     const { ids, active } = req.body ?? {};
 
     validateIds(ids);
     validateActive(active);
 
-    const updatedRules = service.updateRulesStatus(ids, active);
+    const updatedRules = await service.updateRulesStatus(ids, active);
     res.status(200).json({
       updated: updatedRules.map((rule) => rule.toDetailedJSON()),
       status: constants.statusSuccess,
