@@ -1,6 +1,13 @@
 import winston from "winston";
 import { config } from "./env";
 
+/**
+ * Captured before console.log is replaced below. The replacement must never
+ * call the patched console.log again, or a fallback to the plain console would
+ * recurse until the stack overflows.
+ */
+const nativeConsoleLog = console.log.bind(console);
+
 class LoggerSingleton {
   private static instance: winston.Logger | Console;
 
@@ -10,6 +17,7 @@ class LoggerSingleton {
     if (!LoggerSingleton.instance) {
       try {
         LoggerSingleton.instance = winston.createLogger({
+          // The level comes from config, which forces info in production.
           level: config.logLevel,
           format: winston.format.simple(),
           transports: [
@@ -33,5 +41,14 @@ class LoggerSingleton {
 export const logger = LoggerSingleton.getInstance();
 
 console.log = function (...args: unknown[]) {
-  logger.info(args.join(" "));
+  const message = args.join(" ");
+
+  // When winston failed to initialise the logger IS the console, so routing the
+  // message back through logger.info would re-enter this very function.
+  if (logger === console) {
+    nativeConsoleLog(message);
+    return;
+  }
+
+  logger.info(message);
 };

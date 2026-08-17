@@ -115,9 +115,9 @@ describe('errorHandler', () => {
   });
 
   describe('an unexpected error', () => {
-    // Verified against the source: the fallback branch answers 400 with the
-    // generic VALIDATION_ERROR code. It does not produce a 500.
-    it('responds with 400 rather than 500', () => {
+    // An error the application never raised deliberately is a server fault, not
+    // a client one: answering 400 would hide the bug and blame the caller.
+    it('responds with 500 rather than 400', () => {
       // Arrange
       const error = new Error('something unforeseen');
 
@@ -125,10 +125,10 @@ describe('errorHandler', () => {
       const res = handle(error);
 
       // Assert
-      expect(res.statusCode).toBe(400);
+      expect(res.statusCode).toBe(500);
     });
 
-    it('falls back to the generic validation code', () => {
+    it('responds with the internal error code and a generic message', () => {
       // Arrange
       const error = new Error('something unforeseen');
 
@@ -138,25 +138,98 @@ describe('errorHandler', () => {
       // Assert
       expect(res.body).toEqual({
         status: 'error',
-        code: 'VALIDATION_ERROR',
-        message: 'something unforeseen',
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Internal server error',
       });
     });
 
-    it('echoes the raw error message back to the client', () => {
+    it('does not leak the original error message to the client', () => {
       // Arrange
-      const error = new SyntaxError('Unexpected token in JSON');
+      const error = new Error('connect ECONNREFUSED 127.0.0.1:5432 at /srv/app/db.ts');
 
       // Act
       const res = handle(error);
 
       // Assert
-      expect((res.body as { message: string }).message).toBe('Unexpected token in JSON');
+      expect(JSON.stringify(res.body)).not.toContain('ECONNREFUSED');
+      expect(JSON.stringify(res.body)).not.toContain('/srv/app/db.ts');
+    });
+
+    it('does not leak internals of an error subclass either', () => {
+      // Arrange
+      const error = new TypeError('rule.setActive is not a function');
+
+      // Act
+      const res = handle(error);
+
+      // Assert
+      expect(res.statusCode).toBe(500);
+      expect((res.body as { message: string }).message).toBe('Internal server error');
+    });
+  });
+
+  describe('a client error raised by framework middleware', () => {
+    /** Mirrors how express.json() reports an unparseable body: a tagged 4xx status. */
+    function bodyParserError(): Error {
+      const error = new SyntaxError('Unexpected end of JSON input');
+      Object.assign(error, { status: 400, type: 'entity.parse.failed' });
+
+      return error;
+    }
+
+    it('stays a 400 instead of being reclassified as a server fault', () => {
+      // Arrange
+      const error = bodyParserError();
+
+      // Act
+      const res = handle(error);
+
+      // Assert
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('keeps the generic validation code and the parser message', () => {
+      // Arrange
+      const error = bodyParserError();
+
+      // Act
+      const res = handle(error);
+
+      // Assert
+      expect(res.body).toEqual({
+        status: 'error',
+        code: 'VALIDATION_ERROR',
+        message: 'Unexpected end of JSON input',
+      });
+    });
+
+    it('does not treat a tagged 5xx status as a client error', () => {
+      // Arrange
+      const error = new Error('upstream exploded');
+      Object.assign(error, { status: 503 });
+
+      // Act
+      const res = handle(error);
+
+      // Assert
+      expect(res.statusCode).toBe(500);
+      expect((res.body as { code: string }).code).toBe('INTERNAL_SERVER_ERROR');
     });
   });
 
   describe('logging', () => {
-    it('writes the error message to console.error', () => {
+    it('writes the message of an expected error to console.error', () => {
+      // Arrange
+      const error = new RuleValidationError('INVALID_IP', 'IPs must be valid IPv4 addresses.');
+
+      // Act
+      handle(error);
+
+      // Assert
+      expect(consoleErrorSpy).toHaveBeenCalledWith('IPs must be valid IPv4 addresses.');
+    });
+
+    it('logs an unexpected error in full, so the hidden detail is not lost', () => {
       // Arrange
       const error = new Error('boom');
 
@@ -164,7 +237,7 @@ describe('errorHandler', () => {
       handle(error);
 
       // Assert
-      expect(consoleErrorSpy).toHaveBeenCalledWith('boom');
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
     });
   });
 });

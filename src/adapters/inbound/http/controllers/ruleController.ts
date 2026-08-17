@@ -19,8 +19,7 @@ export function createRuleController(service: FirewallService) {
   }
 
   async function getRules(req: Request, res: Response): Promise<void> {
-    const type = req.query.type as string | undefined;
-    const ruleType = parseRuleType(type);
+    const ruleType = parseRuleType(req.query.type);
 
     const rules = await service.getAllRules(ruleType);
 
@@ -48,9 +47,18 @@ export function createRuleController(service: FirewallService) {
   return { removeRules, getRules, updateRuleStatus };
 }
 
-function parseRuleType(type: string | undefined): RuleType | undefined {
+function parseRuleType(type: unknown): RuleType | undefined {
   if (type === undefined) {
     return undefined;
+  }
+
+  // A repeated query parameter (?type=ip&type=domain) arrives as an array, so
+  // the type must be checked before any string method is called on it.
+  if (typeof type !== 'string') {
+    throw new RuleValidationError(
+      'INVALID_TYPE',
+      "Type must be one of 'ip', 'domain' or 'port'."
+    );
   }
 
   switch (type.toLowerCase()) {

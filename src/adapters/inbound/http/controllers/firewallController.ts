@@ -12,7 +12,7 @@ export function createFirewallController(service: FirewallService) {
   ): Promise<void> {
     const { values, mode } = req.body ?? {};
 
-    validateValues(values);
+    validateValues(values, type);
     validateMode(mode);
 
     const addedRules = await service.addRule(values, type, true, mode);

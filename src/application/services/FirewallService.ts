@@ -6,22 +6,8 @@ import { RuleType } from "../../domain/models/RuleType";
 import { Mode } from "../../domain/models/FirewallRule";
 import { RuleValidationError } from "../errors/RuleValidationError";
 import { RuleNotFoundError } from "../errors/RuleNotFoundError";
+import { RULE_VALIDATION_ERRORS } from "../errors/ruleValidationErrors";
 import { FirewallRuleFactory } from "../factories/FirewallRuleFactory";
-
-const VALIDATION_ERRORS: Record<RuleType, { code: string; message: string }> = {
-  [RuleType.IP]: {
-    code: "INVALID_IP",
-    message: "IPs must be valid IPv4 addresses.",
-  },
-  [RuleType.DOMAIN]: {
-    code: "INVALID_DOMAIN",
-    message: "Domains must be valid domain names.",
-  },
-  [RuleType.PORT]: {
-    code: "INVALID_PORT",
-    message: "Ports must be integers between 1 and 65535.",
-  },
-};
 
 export class FirewallService {
   constructor(
@@ -38,7 +24,7 @@ export class FirewallService {
     const validationResults = values.map((value) => this.factory.isValid(type, value));
 
     if (validationResults.includes(false)) {
-      const { code, message } = VALIDATION_ERRORS[type];
+      const { code, message } = RULE_VALIDATION_ERRORS[type];
       throw new RuleValidationError(code, message);
     }
 
