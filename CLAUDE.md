@@ -2,9 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Repository layout
+
+```text
+backend/              the Node/Express/PostgreSQL application (everything below)
+docker-compose.yml    project-level orchestration; PostgreSQL today, frontend later
+```
+
+A `frontend/` will be added at the root when it exists. Compose files stay at the root so they can coordinate all services.
+
 ## Commands
 
+**All npm commands run from `backend/`** — `dotenv` resolves `.env`, and `LOG_FILE_PATH`, `outDir`, and the drizzle paths all resolve from the working directory. `docker compose` runs from the repository root.
+
 ```bash
+cd backend
+
 npm run dev          # nodemon + ts-node on src/main/server.ts
 npm run build        # tsc -> dist/
 npm start            # node dist/main/server.js (requires build)
@@ -15,7 +28,7 @@ npm run test:db      # the PostgreSQL integration suite alone
 npx jest tests/unit/domain/IpRule.test.ts   # single file
 npx jest -t "rejects a non-integer port"    # single test by name
 
-docker compose up -d      # Postgres 16 on :5432 (override with POSTGRES_HOST_PORT)
+(cd .. && docker compose up -d)   # Postgres 16 on :5432 (override POSTGRES_HOST_PORT)
 npm run db:generate       # emit SQL migration into drizzle/ from schema.ts
 npm run db:migrate        # apply migrations
 npm run db:seed           # seed rule_types (1=ip, 2=domain, 3=port), idempotent
@@ -30,11 +43,13 @@ No linter or formatter is configured. `.env` is required and gitignored — `src
 Ports-and-adapters (hexagonal), four layers with a strict inward dependency rule:
 
 ```text
-src/domain/       rules + validation, zero imports from other layers
-src/application/  services, factory, ports (interfaces), errors — depends only on domain
-src/adapters/     inbound/http (express) + outbound/persistence — implement/consume the ports
-src/main/         composition root, config, server bootstrap
+backend/src/domain/       rules + validation, zero imports from other layers
+backend/src/application/  services, factory, ports (interfaces), errors — depends only on domain
+backend/src/adapters/     inbound/http (express) + outbound/persistence — implement/consume the ports
+backend/src/main/         composition root, config, server bootstrap
 ```
+
+Paths below are written relative to `backend/`.
 
 `src/main/composition.ts` is the only place a concrete repository is chosen. `createFirewallRouterFor(repository)` takes any `IFirewallRepository`; `createInMemoryFirewallRouter()` is the in-memory wiring used by tests and by the default export of `app.ts`.
 
@@ -45,7 +60,7 @@ validated env -> logger -> createDatabase(uri) -> connect() Stop-and-Wait
   -> PostgresFirewallRepository -> FirewallService -> createApp(router) -> listen
 ```
 
-`app.ts` still default-exports an in-memory application; that instance exists **only** for the test suites, which rely on Jest giving each test file its own module registry, and therefore never hardcode ids or assume an empty store (see the header comment in [tests/integration/firewallApi.test.ts](tests/integration/firewallApi.test.ts)).
+`app.ts` still default-exports an in-memory application; that instance exists **only** for the test suites, which rely on Jest giving each test file its own module registry, and therefore never hardcode ids or assume an empty store (see the header comment in [tests/integration/firewallApi.test.ts](backend/tests/integration/firewallApi.test.ts)).
 
 ### Request flow
 
@@ -60,9 +75,9 @@ Everything is factory-function based (`createFirewallRouter(service)`, `createFi
 - **Request shape and primitive runtime types** — `adapters/inbound/http/validators/requestValidators.ts`, built on **zod**, called by controllers. Envelope (`values` non-empty array, `mode`, `ids` integers, `active` boolean) *and* per-element JavaScript type: ip/domain elements must be `string`, port elements must be an integer.
 - **Semantic validity** — `domain/validation/ruleValidators.ts`, reached only through `FirewallRuleFactory.isValid(type, value)` from `FirewallService.addRule`. Real IPv4, bare domain (no protocol/path/port), port in 1..65535. The service validates *all* values before creating *any*, so a batch is all-or-nothing.
 
-Both throw `RuleValidationError(code, message)`; the `code` string is what surfaces in the JSON body. Zod issues are never exposed raw — a wrongly typed element reports the same code as a semantically invalid one, via the shared [src/application/errors/ruleValidationErrors.ts](src/application/errors/ruleValidationErrors.ts) map, so the two tiers cannot drift apart.
+Both throw `RuleValidationError(code, message)`; the `code` string is what surfaces in the JSON body. Zod issues are never exposed raw — a wrongly typed element reports the same code as a semantically invalid one, via the shared [src/application/errors/ruleValidationErrors.ts](backend/src/application/errors/ruleValidationErrors.ts) map, so the two tiers cannot drift apart.
 
-The domain validators are also independently total: each opens with a `typeof` guard and returns `false` for any exotic runtime value rather than throwing. Keep it that way — [tests/unit/domain/ruleValidators.test.ts](tests/unit/domain/ruleValidators.test.ts) pins it.
+The domain validators are also independently total: each opens with a `typeof` guard and returns `false` for any exotic runtime value rather than throwing. Keep it that way — [tests/unit/domain/ruleValidators.test.ts](backend/tests/unit/domain/ruleValidators.test.ts) pins it.
 
 ### Error handling
 
@@ -77,7 +92,7 @@ Nothing try/catches in controllers. Handlers are `async` and Express 5 auto-forw
 
 Unexpected errors are logged in full via `console.error(err)` but their message is **never** sent to the client — it can carry stack, path, or database detail. Don't relax that to echo `err.message`.
 
-This contract is pinned by [tests/unit/adapters/asyncRouteErrorPropagation.test.ts](tests/unit/adapters/asyncRouteErrorPropagation.test.ts) — don't reintroduce local try/catch or the async-forwarding coverage becomes vacuous.
+This contract is pinned by [tests/unit/adapters/asyncRouteErrorPropagation.test.ts](backend/tests/unit/adapters/asyncRouteErrorPropagation.test.ts) — don't reintroduce local try/catch or the async-forwarding coverage becomes vacuous.
 
 Every response carries `status: "success" | "error"` from `adapters/inbound/http/constants.ts`.
 
@@ -94,9 +109,9 @@ Two adapters implement the **same** `IFirewallRepository` port and are interchan
 - `InMemoryFirewallRepository` — keeps its own id counter; used by tests.
 - `drizzle/PostgresFirewallRepository` — used by the running server.
 
-Both are held to one shared suite, [tests/fixtures/firewallRepositoryContract.ts](tests/fixtures/firewallRepositoryContract.ts). **Add contract-level behaviour there, not to one adapter's tests.**
+Both are held to one shared suite, [tests/fixtures/firewallRepositoryContract.ts](backend/tests/fixtures/firewallRepositoryContract.ts). **Add contract-level behaviour there, not to one adapter's tests.**
 
-Schema: `firewall_rules.type_id` is a FK to the `rule_types` lookup table (seed before inserting), `mode` is a pg enum, `value` is `text`. All of that stops at [drizzle/firewallRuleMapper.ts](src/adapters/outbound/persistence/drizzle/firewallRuleMapper.ts) — it owns the `RuleType ↔ type_id` map and decodes port values back to `number`. No Drizzle row type, `type_id`, or SQL detail may leak past it into the port, the service, or the domain.
+Schema: `firewall_rules.type_id` is a FK to the `rule_types` lookup table (seed before inserting), `mode` is a pg enum, `value` is `text`. All of that stops at [drizzle/firewallRuleMapper.ts](backend/src/adapters/outbound/persistence/drizzle/firewallRuleMapper.ts) — it owns the `RuleType ↔ type_id` map and decodes port values back to `number`. No Drizzle row type, `type_id`, or SQL detail may leak past it into the port, the service, or the domain.
 
 **PostgreSQL owns persisted ids**: inserts omit `id` and read the generated identity back via `RETURNING`. Never compute `MAX(id)+1`.
 
@@ -114,4 +129,4 @@ Schema: `firewall_rules.type_id` is a FK to the `rule_types` lookup table (seed 
 
 ## Testing
 
-`tests/` mirrors `src/` (`tests/unit/{domain,application,adapters}`, `tests/integration`). Test doubles live in [tests/fixtures/firewallMocks.ts](tests/fixtures/firewallMocks.ts) — use `createTestService()` and `stubRule()` from there rather than hand-rolling mocks. `StubRule` extends the abstract `FirewallRule` on purpose: the base declares protected members, so structural stand-ins don't type-check.
+`tests/` mirrors `src/` (`tests/unit/{domain,application,adapters}`, `tests/integration`). Test doubles live in [tests/fixtures/firewallMocks.ts](backend/tests/fixtures/firewallMocks.ts) — use `createTestService()` and `stubRule()` from there rather than hand-rolling mocks. `StubRule` extends the abstract `FirewallRule` on purpose: the base declares protected members, so structural stand-ins don't type-check.
