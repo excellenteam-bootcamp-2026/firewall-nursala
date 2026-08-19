@@ -9,13 +9,31 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: firewall_dev
 
-    # Host port is overridable so the stack still comes up on a machine where
-    # something else already owns 5432. Defaults to the standard port.
     ports:
       - "${POSTGRES_HOST_PORT:-5432}:5432"
 
     volumes:
       - firewall_postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: firewall-backend
+    restart: unless-stopped
+
+    env_file:
+      - ./backend/.env
+
+    environment:
+      DEV_DATABASE_URI: env.DEV_DATABASE_URI
+
+    depends_on:
+      - postgres
+
+    ports:
+      - "3000:3000"
 
 volumes:
   firewall_postgres_data:
