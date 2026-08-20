@@ -1,8 +1,24 @@
+# Local build/runtime artifacts — the image builds its own.
 node_modules
 dist
+build
 logs
-.env
-.git
-.gitignore
 coverage
 *.log
+
+# Secrets and environment files. These are injected at run time through
+# Compose `env_file`, never baked into the image.
+.env
+.env.*
+env.dev
+
+# VCS / editor / Docker metadata
+.git
+.gitignore
+.vscode
+Dockerfile
+.dockerignore
+
+# NOTE: package.json, package-lock.json, tsconfig.json, src/, scripts/ and
+# drizzle/ must stay in the build context — the build stage compiles the
+# sources and the migrate service runs drizzle-kit/seed from them.

@@ -1,0 +1,99 @@
+# ---------------------------------------------------------------------------
+# Development stack:  postgres -> migrate (one-shot) -> backend
+#
+#   docker compose -f docker-compose.dev.yml up -d --build
+#
+# The project name is pinned so the named volume keeps resolving to the
+# existing firewall-nursala_firewall_postgres_data regardless of which file
+# or directory the stack is started from.
+# ---------------------------------------------------------------------------
+name: firewall-nursala
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: firewall-postgres
+    restart: unless-stopped
+
+    # Shared with the backend so the server credentials and the connection
+    # URIs cannot drift apart.
+    env_file:
+      - ./backend/env.dev
+
+    # HOST:CONTAINER. The host port is only for host-side access (psql,
+    # drizzle-kit, npm test); container-to-container traffic never uses it.
+    # Override with POSTGRES_HOST_PORT when 5432 is taken on the host.
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+
+    volumes:
+      - firewall_postgres_data:/var/lib/postgresql/data
+
+    # "container started" is not "server accepting connections", so readiness
+    # is probed rather than assumed. $$ escapes the variable from Compose
+    # interpolation so it is expanded inside the container instead.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # One-shot schema/seed job. It runs on the build stage image because
+  # drizzle-kit and tsx are devDependencies and must not ship in the runtime
+  # image. Without it a fresh volume would leave the API querying tables that
+  # do not exist. Both steps are idempotent.
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: build
+
+    image: firewall-backend:dev-build
+    container_name: firewall-migrate
+    restart: "no"
+
+    env_file:
+      - ./backend/env.dev
+
+    command: sh -c "npm run db:migrate && npm run db:seed"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+
+    image: firewall-backend:dev
+    container_name: firewall-backend
+    restart: unless-stopped
+
+    env_file:
+      - ./backend/env.dev
+
+    # HOST:CONTAINER. The container port must match PORT in env.dev.
+    ports:
+      - "${BACKEND_HOST_PORT:-3000}:3000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "require('http').get('http://127.0.0.1:'+process.env.PORT+'/api/firewall/rules',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  firewall_postgres_data:

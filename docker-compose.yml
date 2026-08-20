@@ -1,39 +1,12 @@
-services:
-  postgres:
-    image: postgres:16
-    container_name: firewall-postgres
-    restart: unless-stopped
-
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: firewall_dev
-
-    ports:
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
-
-    volumes:
-      - firewall_postgres_data:/var/lib/postgresql/data
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-
-    container_name: firewall-backend
-    restart: unless-stopped
-
-    env_file:
-      - ./backend/.env
-
-    environment:
-      DEV_DATABASE_URI: env.DEV_DATABASE_URI
-
-    depends_on:
-      - postgres
-
-    ports:
-      - "3000:3000"
-
-volumes:
-  firewall_postgres_data:
+# ---------------------------------------------------------------------------
+# Default stack. Kept for backward compatibility: `docker compose up -d`
+# still starts the same PostgreSQL service, on the same named volume, as
+# before Dockerization of the backend.
+#
+# The development configuration itself lives in docker-compose.dev.yml and is
+# pulled in here rather than duplicated, so the default stack and
+# `docker compose -f docker-compose.dev.yml up` can never drift apart.
+# Production is deliberately not included: see docker-compose.prod.yml.
+# ---------------------------------------------------------------------------
+include:
+  - docker-compose.dev.yml

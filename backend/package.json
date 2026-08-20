@@ -12,7 +12,8 @@
     "test:db": "jest tests/integration/postgresFirewallRepository.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:seed:sample": "tsx scripts/seed.ts --with-sample-rules"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,96 @@
+# ---------------------------------------------------------------------------
+# Production-style stack:  postgres -> migrate (one-shot) -> backend
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Differences from the development stack:
+#   * backend/.env.prod (ENV=production -> PROD_DATABASE_URI, log level info,
+#     file logging)
+#   * its own Compose project and therefore its own named volume, so the
+#     production cluster can never touch development data
+#   * no source mounts, no hot reload: the runtime image runs `npm start`
+#     over the compiled dist/, never nodemon or ts-node
+#
+# Run one stack at a time: both publish the same host ports by default.
+# ---------------------------------------------------------------------------
+name: firewall-nursala-prod
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: firewall-postgres-prod
+    restart: unless-stopped
+
+    env_file:
+      - ./backend/.env.prod
+
+    # HOST:CONTAINER. Published for host-side administration only; the backend
+    # reaches the database over the Compose network as postgres:5432.
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+
+    volumes:
+      - firewall_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # One-shot schema/seed job on the build stage image (drizzle-kit and tsx are
+  # devDependencies and stay out of the runtime image). Idempotent.
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: build
+
+    image: firewall-backend:prod-build
+    container_name: firewall-migrate-prod
+    restart: "no"
+
+    env_file:
+      - ./backend/.env.prod
+
+    command: sh -c "npm run db:migrate && npm run db:seed"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+
+    image: firewall-backend:prod
+    container_name: firewall-backend-prod
+    restart: unless-stopped
+
+    env_file:
+      - ./backend/.env.prod
+
+    ports:
+      - "${BACKEND_HOST_PORT:-3000}:3000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "require('http').get('http://127.0.0.1:'+process.env.PORT+'/api/firewall/rules',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  firewall_postgres_data:
