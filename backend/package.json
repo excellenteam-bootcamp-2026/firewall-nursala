@@ -1,0 +1,52 @@
+{
+  "name": "firewall-nursala",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000f\u0000i\u0000r\u0000e\u0000w\u0000a\u0000l\u0000l\u0000-\u0000n\u0000u\u0000r\u0000s\u0000a\u0000l\u0000a\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --watch \"src/**/*.ts\" --exec \"ts-node\" src/main/server.ts",
+    "build": "tsc",
+    "start": "node dist/main/server.js",
+    "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:db": "jest tests/integration/postgresFirewallRepository.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:seed:sample": "tsx scripts/seed.ts --with-sample-rules"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/excellenteam-bootcamp-2026/firewall-nursala.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/excellenteam-bootcamp-2026/firewall-nursala/issues"
+  },
+  "homepage": "https://github.com/excellenteam-bootcamp-2026/firewall-nursala#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "postgres": "^3.4.9",
+    "winston": "^3.19.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.2",
+    "@types/supertest": "^7.2.1",
+    "drizzle-kit": "^0.31.10",
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.12",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.12",
+    "typescript": "^5.7.3"
+  }
+}

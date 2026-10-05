@@ -1,0 +1,12 @@
+# ---------------------------------------------------------------------------
+# Default stack. Kept for backward compatibility: `docker compose up -d`
+# still starts the same PostgreSQL service, on the same named volume, as
+# before Dockerization of the backend.
+#
+# The development configuration itself lives in docker-compose.dev.yml and is
+# pulled in here rather than duplicated, so the default stack and
+# `docker compose -f docker-compose.dev.yml up` can never drift apart.
+# Production is deliberately not included: see docker-compose.prod.yml.
+# ---------------------------------------------------------------------------
+include:
+  - docker-compose.dev.yml
